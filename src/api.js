@@ -68,7 +68,7 @@ export const api = {
 export function extractList(res) {
   if (Array.isArray(res)) return res;
   if (!res || typeof res !== 'object') return [];
-  for (const k of ['data', 'content', 'items', 'results', 'bookings', 'tests', 'timeSlots', 'slots', 'reports']) {
+  for (const k of ['data', 'content', 'items', 'results', 'bookings', 'customers', 'tests', 'timeSlots', 'slots', 'reports']) {
     if (Array.isArray(res[k])) return res[k];
     if (res[k] && typeof res[k] === 'object') {
       const inner = extractList(res[k]);

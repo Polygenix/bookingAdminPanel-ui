@@ -18,6 +18,7 @@ If the panel is hosted on a different domain from the API, the backend must allo
 | Area | Endpoint | Fields |
 | --- | --- | --- |
 | Login | `POST /api/auth/login` | `{ email, password }` -> `data.token`, `data.user.role` (`admin`) |
+| Customers | `GET /api/admin/fetchAllCustomers?page=1&limit=10&search=` | Paginated customer list; optional search by name, email or phone |
 | Bookings | `GET /api/admin/bookings` | `patientName, testName, amount, age, gender, phone, email, bookingDate, timeSlotId{date,startTime,endTime}, addressId, customer{name,email}, notes, status` |
 | Booking edit | `PUT /api/admin/bookings/:id` | `patientName, testName, age, gender, phone, email, notes` |
 | Booking status | `PUT /api/admin/bookings/:id/status` | `{ status }` (`pending`, `confirmed`, `completed`, `cancelled`) |

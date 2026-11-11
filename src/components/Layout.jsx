@@ -13,11 +13,12 @@ const NAV = [
       { to: '/time-slots', label: 'Time Slots', icon: 'clock' },
       { to: '/reports', label: 'Reports', icon: 'file' },
       { to: '/payments', label: 'Payments', icon: 'wallet' },
+      { to: '/customers', label: 'Customers', icon: 'dashboard' },
     ],
   },
 ];
 
-const TITLES = { '/': 'Dashboard', '/bookings': 'Bookings', '/tests': 'Tests', '/time-slots': 'Time Slots', '/reports': 'Reports', '/payments': 'Payments' };
+const TITLES = { '/': 'Dashboard', '/bookings': 'Bookings', '/tests': 'Tests', '/time-slots': 'Time Slots', '/reports': 'Reports', '/payments': 'Payments', '/customers': 'Customers' };
 
 export default function Layout() {
   const navigate = useNavigate();

@@ -8,6 +8,7 @@ import Tests from './pages/Tests.jsx';
 import TimeSlots from './pages/TimeSlots.jsx';
 import Reports from './pages/Reports.jsx';
 import Payments from './pages/Payments.jsx';
+import Customers from './pages/Customers.jsx';
 
 function Protected({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />;
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="time-slots" element={<TimeSlots />} />
         <Route path="reports" element={<Reports />} />
         <Route path="payments" element={<Payments />} />
+        <Route path="customers" element={<Customers />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
