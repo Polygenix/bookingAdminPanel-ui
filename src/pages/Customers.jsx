@@ -1,11 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, extractList } from '../api.js';
 import DataTable from '../components/DataTable.jsx';
+import FormFields, { initialValues } from '../components/FormFields.jsx';
 import Icon from '../components/Icons.jsx';
+import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useToast } from '../components/Toast.jsx';
 
 const PAGE_SIZE = 10;
+
+const customerFields = [
+  { name: 'name', label: 'Name' },
+  { name: 'email', label: 'Email', type: 'email' },
+];
+
+const isCustomerActive = (customer) => {
+  const value = customer.isActive ?? customer.is_active ?? customer.active ?? customer.status;
+  return (
+    value === true ||
+    value === 1 ||
+    (typeof value === 'string' && ['true', '1', 'active'].includes(value.trim().toLowerCase()))
+  );
+};
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -27,6 +43,10 @@ export default function Customers() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [values, setValues] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState({});
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -79,6 +99,64 @@ export default function Customers() {
         ? page + 1
         : page;
 
+  const openEdit = (customer) => {
+    setEditingCustomer(customer);
+    setValues(initialValues(customerFields, customer));
+  };
+
+  const saveCustomer = async (event) => {
+    event?.preventDefault();
+    const customerId = editingCustomer?._id ?? editingCustomer?.id ?? editingCustomer?.customerId;
+    if (!customerId) {
+      toast('Unable to update customer: customer ID is missing', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.put(`/api/admin/updateCustomer/${encodeURIComponent(customerId)}`, {
+        name: values.name,
+        email: values.email,
+      });
+      toast('Customer updated successfully');
+      setEditingCustomer(null);
+      loadCustomers();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deactivateCustomer = async (customer) => {
+    const customerId = customer?._id ?? customer?.id ?? customer?.customerId;
+    if (!customerId) {
+      toast('Unable to update customer status: customer ID is missing', 'error');
+      return;
+    }
+
+    const key = String(customerId);
+    setUpdatingStatus((current) => ({ ...current, [key]: true }));
+    try {
+      await api.patch(`/api/admin/updateCustomerStatus/${encodeURIComponent(customerId)}`, { isActive: false });
+      setCustomers((current) =>
+        current.map((item) => {
+          const itemId = item?._id ?? item?.id ?? item?.customerId;
+          return String(itemId) === key ? { ...item, isActive: false } : item;
+        })
+      );
+      toast('Customer deactivated successfully');
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setUpdatingStatus((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -106,7 +184,30 @@ export default function Customers() {
             {Number.isFinite(total) && total >= 0 ? `${total} customers` : `${customers.length} shown`}
           </span>
         </div>
-        <DataTable rows={customers} columns={columns} loading={loading} empty={error ? 'Unable to load customers' : 'No customers to show'} />
+        <DataTable
+          rows={customers}
+          columns={columns}
+          loading={loading}
+          empty={error ? 'Unable to load customers' : 'No customers to show'}
+          actions={(customer) => (
+            <>
+              <button className="btn sm" onClick={() => openEdit(customer)}>
+                <Icon name="edit" size={14} /> Edit
+              </button>
+              {isCustomerActive(customer) && (
+                <button
+                  className="btn sm danger"
+                  onClick={() => deactivateCustomer(customer)}
+                  disabled={!!updatingStatus[String(customer._id ?? customer.id ?? customer.customerId)]}
+                >
+                  {updatingStatus[String(customer._id ?? customer.id ?? customer.customerId)]
+                    ? 'Updating…'
+                    : 'Deactivate'}
+                </button>
+              )}
+            </>
+          )}
+        />
         {!loading && customers.length > 0 && (
           <div className="pager">
             <span className="muted">
@@ -136,6 +237,28 @@ export default function Customers() {
           </div>
         )}
       </div>
+
+      {editingCustomer && (
+        <Modal
+          title="Edit customer"
+          onClose={() => setEditingCustomer(null)}
+          footer={
+            <>
+              <button type="button" className="btn" onClick={() => setEditingCustomer(null)}>
+                Cancel
+              </button>
+              <button type="submit" form="customer-edit-form" className="btn primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </>
+          }
+        >
+          <form id="customer-edit-form" className="form" onSubmit={saveCustomer}>
+            <FormFields fields={customerFields} values={values} onChange={setValues} />
+            <button type="submit" hidden />
+          </form>
+        </Modal>
+      )}
     </>
   );
 }
