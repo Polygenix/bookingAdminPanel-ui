@@ -1,26 +1,41 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api, extractList } from '../api.js';
 import DataTable, { StatusBadge } from '../components/DataTable.jsx';
 import Icon from '../components/Icons.jsx';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { useToast } from '../components/Toast.jsx';
 import { bookingName, fmtMoney, shortId } from '../helpers.js';
 
 const STATUSES = ['pending', 'paid', 'failed'];
 const dash = <span className="muted">—</span>;
 
-/**
- * Payments page — UI only, not connected to the API yet.
- *
- * To bind later: fetch GET /api/admin/fetchAllPayment and put the result array into `payments`.
- * Each payment has: _id, booking (populated booking), customer { name, email },
- * razorpayOrderId, razorpayPaymentId, amount, currency, status (pending | paid | failed), createdAt.
- */
 export default function Payments() {
-  const [payments] = useState([]); // <- bind API data here
-  const [loading] = useState(false);
+  const toast = useToast();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('ALL');
   const [detail, setDetail] = useState(null);
+
+  const loadPayments = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      setPayments(extractList(await api.get('/api/admin/fetchAllPayment')));
+    } catch (e) {
+      setPayments([]);
+      setError(true);
+      toast(e.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadPayments();
+  }, [loadPayments]);
 
   const filtered = useMemo(
     () =>
@@ -87,7 +102,15 @@ export default function Payments() {
 
   return (
     <>
-      <PageHeader title="Payments" subtitle="Track Razorpay payments received for bookings" />
+      <PageHeader
+        title="Payments"
+        subtitle="Track Razorpay payments received for bookings"
+        actions={
+          <button className="btn" onClick={loadPayments}>
+            <Icon name="refresh" size={16} /> Refresh
+          </button>
+        }
+      />
 
       <div className="stats">
         {stats.map((s) => (
@@ -124,7 +147,7 @@ export default function Payments() {
           rows={filtered}
           columns={columns}
           loading={loading}
-          empty="No payments to show"
+          empty={error ? 'Unable to load payments' : 'No payments to show'}
           actions={(p) => (
             <button className="btn sm" onClick={() => setDetail(p)}>
               <Icon name="eye" size={14} /> View
