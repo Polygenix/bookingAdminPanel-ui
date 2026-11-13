@@ -37,6 +37,10 @@ async function request(method, path, body, isForm = false) {
     data = text;
   }
 
+  // if (import.meta.env.DEV) {
+  //   console.log('API response:', { method, path, status: res.status, data });
+  // }
+
   if (res.status === 401) {
     clearSession();
     if (!path.includes('/auth/login')) window.location.href = '/login';
